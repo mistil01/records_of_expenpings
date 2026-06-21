@@ -36,6 +36,17 @@ uvicorn main:app --reload
 
 Visit http://127.0.0.1:8000/docs for interactive API documentation.
 
+## Docker
+
+Build and run with Docker:
+
+```bash
+docker-compose up --build
+```
+
+The API will be available at http://127.0.0.1:8000
+
+
 ## API Endpoints
 
 - `POST /register` - Register new user
