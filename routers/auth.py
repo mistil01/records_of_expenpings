@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -17,7 +19,13 @@ pwd_context = CryptContext(schemes=["bcrypt"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 load_dotenv()
-SECRET_KEY = os.getenv("SECRET_KEY", "fallback-key")
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY environment variable is not set. "
+        "Create a .env file with SECRET_KEY=<your-secret> or export it before running the app."
+    )
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
 
 
 
@@ -47,7 +55,10 @@ async def login(user: LoginRequest, db: AsyncSession = Depends(get_db)):
     if not pwd_context.verify(user.password, db_user.password):
         raise HTTPException(status_code=400, detail="Wrong password")
 
-    token = jwt.encode({"sub": db_user.username}, SECRET_KEY, algorithm="HS256")
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    token = jwt.encode(
+        {"sub": db_user.username, "exp": expire}, SECRET_KEY, algorithm="HS256"
+    )
     return {"access_token": token}
 
 
@@ -65,4 +76,3 @@ async def get_current_user(
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user
-
